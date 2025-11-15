@@ -45,6 +45,6 @@ The frontend is under development with basic wiring planned, and security featur
 - Spring Data JPA / Hibernate
 - MySQL / H2 (for development)
 - Maven
-- JUnit (planned for unit testing)
+- JUnit5 (planned for unit testing)
 
 ## Frontend
