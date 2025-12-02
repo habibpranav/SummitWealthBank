@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface CardTransactionRepository extends JpaRepository<CardTransaction, Long> {
     List<CardTransaction> findByAccountId(Long accountId);
+    List<CardTransaction> findByAccountIdInOrderByTimestampDesc(List<Long> accountIds);
 }

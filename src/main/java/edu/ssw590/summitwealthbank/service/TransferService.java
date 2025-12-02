@@ -5,10 +5,13 @@ import edu.ssw590.summitwealthbank.model.Account;
 import edu.ssw590.summitwealthbank.model.Transaction;
 import edu.ssw590.summitwealthbank.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,5 +50,19 @@ public class TransferService {
 
     public List<Transaction> getTransactions(Long accountId) {
         return transactionRepository.findByFromAccountIdOrToAccountId(accountId, accountId);
+    }
+
+    public List<Transaction> getRecentTransactionsByEmail(String email, int limit) {
+        List<Account> accounts = accountService.getAccountsByEmail(email);
+
+        if (accounts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> accountIds = accounts.stream()
+                .map(Account::getId)
+                .collect(Collectors.toList());
+
+        return transactionRepository.findRecentByAccountIds(accountIds, PageRequest.of(0, limit));
     }
 }

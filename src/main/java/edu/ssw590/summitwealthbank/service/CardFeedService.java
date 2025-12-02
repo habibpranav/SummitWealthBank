@@ -1,5 +1,6 @@
 package edu.ssw590.summitwealthbank.service;
 
+import edu.ssw590.summitwealthbank.model.Account;
 import edu.ssw590.summitwealthbank.model.CardTransaction;
 import edu.ssw590.summitwealthbank.repository.CardTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -7,14 +8,17 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CardFeedService {
 
     private final CardTransactionRepository cardTransactionRepository;
+    private final AccountService accountService;
 
     private static final String[] TRUSTED_MERCHANTS = {
             "Amazon", "Starbucks", "Walmart", "Apple", "Target"
@@ -46,5 +50,19 @@ public class CardFeedService {
 
     public List<CardTransaction> getTransactions(Long accountId) {
         return cardTransactionRepository.findByAccountId(accountId);
+    }
+
+    public List<CardTransaction> getTransactionsByEmail(String email) {
+        List<Account> accounts = accountService.getAccountsByEmail(email);
+
+        if (accounts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> accountIds = accounts.stream()
+                .map(Account::getId)
+                .collect(Collectors.toList());
+
+        return cardTransactionRepository.findByAccountIdInOrderByTimestampDesc(accountIds);
     }
 }

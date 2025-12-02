@@ -13,8 +13,8 @@ public class AdminInitializer {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${admin.username}")
-    private String adminUsername;
+    @Value("${admin.email}")
+    private String adminEmail;
 
     @Value("${admin.password}")
     private String adminPassword;
@@ -26,16 +26,18 @@ public class AdminInitializer {
 
     @PostConstruct
     public void createAdminUser() {
-        if (!userRepository.existsByUsername(adminUsername)) {
+        if (!userRepository.existsByEmail(adminEmail)) {
             User admin = User.builder()
-                    .username(adminUsername)
+                    .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword))
+                    .firstName("Admin")
+                    .lastName("User")
                     .role("ADMIN")
                     .build();
             userRepository.save(admin);
-            System.out.println(" Admin user created.");
+            System.out.println("Admin user created.");
         } else {
-            System.out.println(" Admin user already exists.");
+            System.out.println("Admin user already exists.");
         }
     }
 }

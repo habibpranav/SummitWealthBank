@@ -10,6 +10,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -52,8 +56,8 @@ public class WealthService {
         BigDecimal stockAmount = req.getAmount().multiply(p.getStockPercentage()).divide(BigDecimal.valueOf(100));
         BigDecimal bondAmount = req.getAmount().multiply(p.getBondPercentage()).divide(BigDecimal.valueOf(100));
 
-        p.setStockUnits(p.getStockUnits().add(stockAmount.divide(stockPrice, 4, BigDecimal.ROUND_HALF_UP)));
-        p.setBondUnits(p.getBondUnits().add(bondAmount.divide(bondPrice, 4, BigDecimal.ROUND_HALF_UP)));
+        p.setStockUnits(p.getStockUnits().add(stockAmount.divide(stockPrice, 4, RoundingMode.HALF_UP)));
+        p.setBondUnits(p.getBondUnits().add(bondAmount.divide(bondPrice, 4, RoundingMode.HALF_UP)));
 
         acc.setBalance(acc.getBalance().subtract(req.getAmount()));
         accountService.saveAccount(acc);
@@ -78,7 +82,7 @@ public class WealthService {
             throw new IllegalArgumentException("Not enough assets");
         }
 
-        BigDecimal sellRatio = req.getAmount().divide(totalValue, 4, BigDecimal.ROUND_HALF_UP);
+        BigDecimal sellRatio = req.getAmount().divide(totalValue, 4, RoundingMode.HALF_UP);
 
         p.setStockUnits(p.getStockUnits().multiply(BigDecimal.ONE.subtract(sellRatio)));
         p.setBondUnits(p.getBondUnits().multiply(BigDecimal.ONE.subtract(sellRatio)));
@@ -96,6 +100,23 @@ public class WealthService {
         BigDecimal stockValue = p.getStockUnits().multiply(ETFPriceSimulator.getStockPrice());
         BigDecimal bondValue = p.getBondUnits().multiply(ETFPriceSimulator.getBondPrice());
 
-        return stockValue.add(bondValue).setScale(2, BigDecimal.ROUND_HALF_UP);
+        return stockValue.add(bondValue).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public List<WealthPortfolio> getPortfoliosByEmail(String email) {
+        List<Account> accounts = accountService.getAccountsByEmail(email);
+
+        if (accounts.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> accountIds = accounts.stream()
+                .map(Account::getId)
+                .collect(Collectors.toList());
+
+        return accountIds.stream()
+                .map(accountId -> wealthPortfolioRepository.findByAccountId(accountId).orElse(null))
+                .filter(portfolio -> portfolio != null)
+                .collect(Collectors.toList());
     }
 }

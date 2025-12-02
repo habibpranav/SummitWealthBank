@@ -4,6 +4,7 @@ import edu.ssw590.summitwealthbank.dto.AccountOpenRequest;
 import edu.ssw590.summitwealthbank.model.Account;
 import edu.ssw590.summitwealthbank.service.AccountService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,8 +17,16 @@ public class AccountController {
 
     private final AccountService accountService;
 
+    @GetMapping
+    public List<Account> getMyAccounts(Authentication authentication) {
+        String email = authentication.getName();
+        return accountService.getAccountsByEmail(email);
+    }
+
     @PostMapping("/open")
-    public Account openAccount(@RequestBody AccountOpenRequest request) {
+    public Account openAccount(@RequestBody AccountOpenRequest request, Authentication authentication) {
+        String email = authentication.getName();
+        request.setEmail(email);
         return accountService.openAccount(request);
     }
 
@@ -26,8 +35,8 @@ public class AccountController {
         return accountService.getUserAccounts(userId);
     }
 
-    @GetMapping("/by-username/{username}")
-    public List<Account> getAccountsByUsername(@PathVariable String username) {
-        return accountService.getAccountsByUsername(username);
+    @GetMapping("/by-email/{email}")
+    public List<Account> getAccountsByEmail(@PathVariable String email) {
+        return accountService.getAccountsByEmail(email);
     }
 }

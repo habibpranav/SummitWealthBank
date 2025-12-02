@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Data
 public class AccountOpenRequest {
-    private String username;
+    private String email;
     private Account.AccountType type;
     private BigDecimal initialDeposit;
 }

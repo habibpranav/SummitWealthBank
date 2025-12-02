@@ -19,11 +19,11 @@ public class AccountService {
     private final UserRepository userRepository;
 
     public Account openAccount(AccountOpenRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + request.getUsername()));
+        User user = userRepository.findByEmail(request.getEmail())  // CHANGED from getUsername
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + request.getEmail()));
 
         Account account = Account.builder()
-                .user(user) // set full user object
+                .user(user)
                 .type(request.getType())
                 .balance(request.getInitialDeposit() != null ? request.getInitialDeposit() : BigDecimal.ZERO)
                 .frozen(false)
@@ -45,15 +45,9 @@ public class AccountService {
         accountRepository.save(account);
     }
 
-
-
-    public List<Account> getAccountsByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+    public List<Account> getAccountsByEmail(String email) {  // CHANGED method name
+        User user = userRepository.findByEmail(email)        // CHANGED from findByUsername
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
         return accountRepository.findByUserId(user.getId());
     }
-
-
-
-
 }
