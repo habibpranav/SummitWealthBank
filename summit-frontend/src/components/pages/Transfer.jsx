@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowRight, 
+import {
+  ArrowRight,
   ArrowRightLeft,
   CreditCard,
   Wallet,
   Send,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -18,12 +19,14 @@ const Transfer = () => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [transferType, setTransferType] = useState('internal'); // internal or external
-  const [externalAccount, setExternalAccount] = useState('');
-  const [routingNumber, setRoutingNumber] = useState('');
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [recipientAccounts, setRecipientAccounts] = useState([]);
+  const [searchingEmail, setSearchingEmail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recentTransfers, setRecentTransfers] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [transactionReference, setTransactionReference] = useState('');
 
   useEffect(() => {
     fetchAccounts();
@@ -83,6 +86,34 @@ const Transfer = () => {
     }
   };
 
+  const searchAccountsByEmail = async () => {
+    setSearchingEmail(true);
+    setError('');
+    setRecipientAccounts([]);
+    setToAccount('');
+
+    try {
+      const response = await axios.get(`/api/accounts/by-email/${recipientEmail}`);
+      const accounts = response.data || [];
+
+      if (accounts.length === 0) {
+        setError('No accounts found for this email address');
+      } else {
+        setRecipientAccounts(accounts);
+      }
+    } catch (error) {
+      console.error('Error searching accounts:', error);
+      if (error.response && error.response.status === 404) {
+        setError('No accounts found for this email address');
+      } else {
+        setError('Failed to search accounts. Please try again.');
+      }
+      setRecipientAccounts([]);
+    } finally {
+      setSearchingEmail(false);
+    }
+  };
+
   const handleTransfer = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -109,14 +140,15 @@ const Transfer = () => {
         description: description
       };
 
-      if (transferType === 'internal') {
-        transferData.toAccountId = parseInt(toAccount);
-      } else {
-        transferData.externalAccount = externalAccount;
-        transferData.routingNumber = routingNumber;
-      }
+      // For both internal and external (to another user), we use toAccountId
+      transferData.toAccountId = parseInt(toAccount);
 
-      await axios.post('/api/transfer', transferData);
+      const response = await axios.post('/api/transfer', transferData);
+
+      // Store transaction reference from response
+      if (response.data && response.data.transactionReference) {
+        setTransactionReference(response.data.transactionReference);
+      }
 
       setSuccess(true);
 
@@ -126,14 +158,15 @@ const Transfer = () => {
         setToAccount('');
         setAmount('');
         setDescription('');
-        setExternalAccount('');
-        setRoutingNumber('');
+        setRecipientEmail('');
+        setRecipientAccounts([]);
         setSuccess(false);
+        setTransactionReference('');
 
         // Refresh data
         fetchAccounts();
         fetchRecentTransfers();
-      }, 2000);
+      }, 5000);
     } catch (error) {
       console.error('Error making transfer:', error);
 
@@ -216,11 +249,19 @@ const Transfer = () => {
 
             {/* Success Message */}
             {success && (
-              <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium">Transfer completed successfully!</span>
+              <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="font-medium">Transfer completed successfully!</span>
+                </div>
+                {transactionReference && (
+                  <div className="mt-2 text-sm">
+                    <span className="font-medium">Transaction Reference: </span>
+                    <span className="font-mono bg-green-200 px-2 py-1 rounded">{transactionReference}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -251,7 +292,12 @@ const Transfer = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setTransferType('external')}
+                onClick={() => {
+                  setTransferType('external');
+                  setRecipientEmail('');
+                  setRecipientAccounts([]);
+                  setToAccount('');
+                }}
                 className={`flex-1 p-4 rounded-lg border-2 transition-all ${
                   transferType === 'external'
                     ? 'border-blue-600 bg-blue-50'
@@ -259,8 +305,8 @@ const Transfer = () => {
                 }`}
               >
                 <Send className="w-5 h-5 text-blue-600 mb-2" />
-                <p className="font-medium text-gray-900">External Transfer</p>
-                <p className="text-sm text-gray-500 mt-1">Send to another bank</p>
+                <p className="font-medium text-gray-900">Send to Another Account</p>
+                <p className="text-sm text-gray-500 mt-1">Send to another person's account</p>
               </button>
             </div>
 
@@ -319,30 +365,66 @@ const Transfer = () => {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Number
+                      Recipient Email
                     </label>
-                    <input
-                      type="text"
-                      value={externalAccount}
-                      onChange={(e) => setExternalAccount(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="Enter account number"
-                      required
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => {
+                          setRecipientEmail(e.target.value);
+                          setError('');
+                        }}
+                        disabled={loading || success}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        placeholder="Enter recipient's email"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={searchAccountsByEmail}
+                        disabled={!recipientEmail || searchingEmail || loading || success}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {searchingEmail ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Searching...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-4 h-4" />
+                            Search
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Routing Number
-                    </label>
-                    <input
-                      type="text"
-                      value={routingNumber}
-                      onChange={(e) => setRoutingNumber(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="Enter routing number"
-                      required
-                    />
-                  </div>
+
+                  {recipientAccounts.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Recipient Account
+                      </label>
+                      <select
+                        value={toAccount}
+                        onChange={(e) => {
+                          setToAccount(e.target.value);
+                          setError('');
+                        }}
+                        disabled={loading || success}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        required
+                      >
+                        <option value="">Select recipient's account</option>
+                        {recipientAccounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.type} - {account.accountNumber} ({account.user.firstName} {account.user.lastName})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -373,14 +455,19 @@ const Transfer = () => {
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (Optional)
+                  Description
                 </label>
                 <input
                   type="text"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                  placeholder="Add a note"
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setError('');
+                  }}
+                  disabled={loading || success}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="Enter transfer description"
+                  required
                 />
               </div>
 

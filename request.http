@@ -104,22 +104,6 @@ GET {{baseUrl}}/api/transactions/recent?limit=50
 Authorization: Bearer {{token}}
 
 ###############################################################################
-### CARD FEED ENDPOINTS
-###############################################################################
-
-### Get All Card Transactions (Current User)
-GET {{baseUrl}}/api/card-feed
-Authorization: Bearer {{token}}
-
-### Generate Card Transaction for Account
-POST {{baseUrl}}/api/card-feed/generate/1
-Authorization: Bearer {{token}}
-
-### Get Card Transactions by Account ID
-GET {{baseUrl}}/api/card-feed/1
-Authorization: Bearer {{token}}
-
-###############################################################################
 ### WEALTH / INVESTMENT ENDPOINTS
 ###############################################################################
 

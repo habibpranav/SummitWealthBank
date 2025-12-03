@@ -36,29 +36,73 @@ const Dashboard = () => {
     try {
       // Fetch accounts
       const accountsRes = await axios.get('/api/accounts');
-      setAccounts(accountsRes.data || []);
+      const accountsData = accountsRes.data || [];
+      setAccounts(accountsData);
 
       // Fetch recent transactions
-      let transactionsData = [];
+      let transformedTransactions = [];
       try {
         const transactionsRes = await axios.get('/api/transactions/recent?limit=5');
-        transactionsData = transactionsRes.data || [];
-        setTransactions(transactionsData);
+        const transactionsData = transactionsRes.data || [];
+
+        // Get user's account IDs for determining transaction type
+        const userAccountIds = accountsData.map(acc => acc.id);
+
+        // Transform backend Transaction data to include type and proper date
+        transformedTransactions = transactionsData.map(t => {
+          // Use account numbers directly from backend
+          const fromAccountNum = t.fromAccountNumber;
+          const toAccountNum = t.toAccountNumber;
+
+          // Determine if this is a credit or debit based on whether user owns from/to account
+          const isUserSender = userAccountIds.includes(t.fromAccountId);
+          const isUserReceiver = userAccountIds.includes(t.toAccountId);
+
+          let type, merchant;
+
+          if (isUserSender && isUserReceiver) {
+            // Internal transfer between user's own accounts
+            type = 'TRANSFER';
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          } else if (isUserReceiver) {
+            // Incoming transfer - CREDIT
+            type = 'CREDIT';
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          } else {
+            // Outgoing transfer - DEBIT
+            type = 'DEBIT';
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          }
+
+          return {
+            id: t.id,
+            transactionReference: t.transactionReference || 'N/A',
+            description: t.description || 'Transfer',
+            amount: t.amount,
+            date: t.timestamp,
+            type: type,
+            merchant: merchant,
+            fromAccountId: t.fromAccountId,
+            toAccountId: t.toAccountId
+          };
+        });
+
+        setTransactions(transformedTransactions);
       } catch (txnError) {
         console.log('No transactions yet');
         setTransactions([]);
       }
 
       // Calculate stats
-      const totalBalance = (accountsRes.data || []).reduce((sum, acc) => sum + acc.balance, 0);
-      const activeAccounts = (accountsRes.data || []).filter(acc => !acc.frozen).length;
+      const totalBalance = accountsData.reduce((sum, acc) => sum + acc.balance, 0);
+      const activeAccounts = accountsData.filter(acc => !acc.frozen).length;
 
-      // Calculate real income and expenses from transactions
-      const totalIncome = transactionsData
+      // Calculate real income and expenses from transformed transactions
+      const totalIncome = transformedTransactions
         .filter(t => t.type === 'CREDIT')
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-      const totalExpenses = transactionsData
+      const totalExpenses = transformedTransactions
         .filter(t => t.type === 'DEBIT')
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 

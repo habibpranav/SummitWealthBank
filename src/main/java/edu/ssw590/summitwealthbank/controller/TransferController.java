@@ -1,5 +1,6 @@
 package edu.ssw590.summitwealthbank.controller;
 
+import edu.ssw590.summitwealthbank.dto.TransactionResponse;
 import edu.ssw590.summitwealthbank.dto.TransferRequest;
 import edu.ssw590.summitwealthbank.model.Transaction;
 import edu.ssw590.summitwealthbank.service.TransferService;
@@ -51,10 +52,33 @@ public class TransferController {
     }
 
     @GetMapping("/api/transactions/recent")
-    public List<Transaction> getRecentTransactions(
+    public List<TransactionResponse> getRecentTransactions(
             @RequestParam(defaultValue = "10") int limit,
             Authentication authentication) {
         String email = authentication.getName();
         return transferService.getRecentTransactionsByEmail(email, limit);
+    }
+
+    @GetMapping("/api/transactions/search")
+    public ResponseEntity<?> searchTransaction(
+            @RequestParam String reference,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            TransactionResponse transaction = transferService.searchByReference(reference, email);
+            return ResponseEntity.ok(transaction);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+        } catch (SecurityException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "An unexpected error occurred. Please try again.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
 }

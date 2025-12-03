@@ -8,12 +8,9 @@ import {
   ArrowRightLeft,
   Receipt,
   TrendingUp,
-  Newspaper,
   Shield,
   Settings,
   LogOut,
-  Bell,
-  Search,
   Menu,
   X,
   ChevronRight,
@@ -36,7 +33,6 @@ const Layout = () => {
     { name: 'Transfer', href: '/transfer', icon: ArrowRightLeft },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
     { name: 'Wealth', href: '/wealth', icon: TrendingUp },
-    { name: 'Card Feed', href: '/card-feed', icon: Newspaper },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -119,33 +115,13 @@ const Layout = () => {
       <div className="lg:ml-64">
         {/* Top bar */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center px-4 sm:px-6 lg:px-8 py-4">
             {/* Mobile menu button */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
             >
               <Menu className="w-6 h-6 text-gray-600" />
-            </button>
-
-            {/* Search bar */}
-            <div className="flex-1 max-w-2xl mx-4">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="search"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Search accounts, transactions..."
-                />
-              </div>
-            </div>
-
-            {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-gray-100">
-              <Bell className="w-6 h-6 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           </div>
         </header>

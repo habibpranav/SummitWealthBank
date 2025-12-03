@@ -233,25 +233,6 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                required
-              />
-              <label className="ml-2 text-sm text-gray-600">
-                I agree to the{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700">
-                  Terms and Conditions
-                </a>{' '}
-                and{' '}
-                <a href="#" className="text-blue-600 hover:text-blue-700">
-                  Privacy Policy
-                </a>
-              </label>
-            </div>
-
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">

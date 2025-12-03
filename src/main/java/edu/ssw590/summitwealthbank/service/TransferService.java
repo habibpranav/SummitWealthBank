@@ -1,5 +1,6 @@
 package edu.ssw590.summitwealthbank.service;
 
+import edu.ssw590.summitwealthbank.dto.TransactionResponse;
 import edu.ssw590.summitwealthbank.dto.TransferRequest;
 import edu.ssw590.summitwealthbank.model.Account;
 import edu.ssw590.summitwealthbank.model.Transaction;
@@ -9,8 +10,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,6 +31,10 @@ public class TransferService {
 
         if (request.getAmount() == null || request.getAmount().signum() <= 0) {
             throw new IllegalArgumentException("Transfer amount must be greater than zero");
+        }
+
+        if (request.getDescription() == null || request.getDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("Description is required and cannot be blank");
         }
 
         if (request.getFromAccountId().equals(request.getToAccountId())) {
@@ -64,7 +71,11 @@ public class TransferService {
         accountService.saveAccount(from);
         accountService.saveAccount(to);
 
+        // Generate unique transaction reference
+        String transactionReference = generateTransactionReference();
+
         Transaction tx = Transaction.builder()
+                .transactionReference(transactionReference)
                 .fromAccountId(from.getId())
                 .toAccountId(to.getId())
                 .amount(request.getAmount())
@@ -75,11 +86,18 @@ public class TransferService {
         return transactionRepository.save(tx);
     }
 
+    private String generateTransactionReference() {
+        // Format: TXN-YYYYMMDD-XXXXXX (e.g., TXN-20251202-A3F9B2)
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String uniquePart = UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
+        return "TXN-" + datePart + "-" + uniquePart;
+    }
+
     public List<Transaction> getTransactions(Long accountId) {
         return transactionRepository.findByFromAccountIdOrToAccountId(accountId, accountId);
     }
 
-    public List<Transaction> getRecentTransactionsByEmail(String email, int limit) {
+    public List<TransactionResponse> getRecentTransactionsByEmail(String email, int limit) {
         List<Account> accounts = accountService.getAccountsByEmail(email);
 
         if (accounts.isEmpty()) {
@@ -90,6 +108,49 @@ public class TransferService {
                 .map(Account::getId)
                 .collect(Collectors.toList());
 
-        return transactionRepository.findRecentByAccountIds(accountIds, PageRequest.of(0, limit));
+        List<Transaction> transactions = transactionRepository.findRecentByAccountIds(accountIds, PageRequest.of(0, limit));
+
+        // Convert to TransactionResponse with account numbers
+        return transactions.stream()
+                .map(this::toTransactionResponse)
+                .collect(Collectors.toList());
+    }
+
+    private TransactionResponse toTransactionResponse(Transaction transaction) {
+        // Fetch account details to get account numbers
+        Account fromAccount = accountService.getAccount(transaction.getFromAccountId());
+        Account toAccount = accountService.getAccount(transaction.getToAccountId());
+
+        return TransactionResponse.builder()
+                .id(transaction.getId())
+                .transactionReference(transaction.getTransactionReference())
+                .fromAccountId(transaction.getFromAccountId())
+                .fromAccountNumber(fromAccount.getAccountNumber())
+                .toAccountId(transaction.getToAccountId())
+                .toAccountNumber(toAccount.getAccountNumber())
+                .amount(transaction.getAmount())
+                .description(transaction.getDescription())
+                .timestamp(transaction.getTimestamp())
+                .build();
+    }
+
+    public TransactionResponse searchByReference(String transactionReference, String email) {
+        Transaction transaction = transactionRepository.findByTransactionReference(transactionReference)
+                .orElseThrow(() -> new IllegalArgumentException("Transaction not found with reference: " + transactionReference));
+
+        // Verify user has access to this transaction
+        List<Account> userAccounts = accountService.getAccountsByEmail(email);
+        List<Long> userAccountIds = userAccounts.stream()
+                .map(Account::getId)
+                .collect(Collectors.toList());
+
+        boolean hasAccess = userAccountIds.contains(transaction.getFromAccountId())
+                || userAccountIds.contains(transaction.getToAccountId());
+
+        if (!hasAccess) {
+            throw new SecurityException("You do not have permission to view this transaction");
+        }
+
+        return toTransactionResponse(transaction);
     }
 }

@@ -15,7 +15,6 @@ import Accounts from './components/pages/Accounts';
 import Transfer from './components/pages/Transfer';
 import Transactions from './components/pages/Transactions';
 import Wealth from './components/pages/Wealth';
-import CardFeed from './components/pages/CardFeed';
 import Admin from './components/pages/Admin';
 import Settings from './components/pages/Settings';
 
@@ -71,7 +70,6 @@ function App() {
         <Route path="transfer" element={<Transfer />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="wealth" element={<Wealth />} />
-        <Route path="card-feed" element={<CardFeed />} />
         <Route path="settings" element={<Settings />} />
         {user?.role === 'ADMIN' && (
           <Route path="admin" element={<Admin />} />

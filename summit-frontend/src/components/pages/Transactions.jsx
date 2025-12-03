@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Filter,
   Download,
   Search,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   ShoppingBag,
@@ -24,8 +22,7 @@ const Transactions = () => {
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all'); // all, income, expense
-  const [dateRange, setDateRange] = useState('30'); // 7, 30, 90, all
+  const [searchError, setSearchError] = useState('');
 
   useEffect(() => {
     fetchTransactions();
@@ -33,7 +30,7 @@ const Transactions = () => {
 
   useEffect(() => {
     filterTransactions();
-  }, [transactions, searchTerm, filterType, dateRange]);
+  }, [transactions, searchTerm]);
 
   const fetchTransactions = async () => {
     try {
@@ -45,18 +42,14 @@ const Transactions = () => {
       const transactionsData = transactionsResponse.data || [];
       const accountsData = accountsResponse.data || [];
 
-      // Create a map of account IDs to account numbers and user's account IDs
-      const accountMap = {};
-      const userAccountIds = [];
-      accountsData.forEach(acc => {
-        accountMap[acc.id] = acc.accountNumber || `#${acc.id}`;
-        userAccountIds.push(acc.id);
-      });
+      // Get user's account IDs for determining transaction type
+      const userAccountIds = accountsData.map(acc => acc.id);
 
       // Transform backend Transaction data to match frontend expectations
       const transformedTransactions = transactionsData.map(t => {
-        const fromAccountNum = accountMap[t.fromAccountId] || `Account ${t.fromAccountId}`;
-        const toAccountNum = accountMap[t.toAccountId] || `Account ${t.toAccountId}`;
+        // Use account numbers directly from backend
+        const fromAccountNum = t.fromAccountNumber;
+        const toAccountNum = t.toAccountNumber;
 
         // Determine if this is a credit or debit based on whether user owns from/to account
         const isUserSender = userAccountIds.includes(t.fromAccountId);
@@ -68,21 +61,22 @@ const Transactions = () => {
           // Internal transfer between user's own accounts - show as both
           type = 'TRANSFER';
           accountNumber = fromAccountNum;
-          merchant = `Transfer: ${fromAccountNum} → ${toAccountNum}`;
+          merchant = `${fromAccountNum} → ${toAccountNum}`;
         } else if (isUserReceiver) {
           // Incoming transfer - CREDIT
           type = 'CREDIT';
           accountNumber = toAccountNum;
-          merchant = `From ${fromAccountNum}`;
+          merchant = `${fromAccountNum} → ${toAccountNum}`;
         } else {
           // Outgoing transfer - DEBIT
           type = 'DEBIT';
           accountNumber = fromAccountNum;
-          merchant = `To ${toAccountNum}`;
+          merchant = `${fromAccountNum} → ${toAccountNum}`;
         }
 
         return {
           id: t.id,
+          transactionReference: t.transactionReference || 'N/A',
           description: t.description || 'Transfer',
           amount: t.amount,
           date: t.timestamp,
@@ -187,31 +181,95 @@ const Transactions = () => {
     }
   };
 
+  const searchByReference = async (reference) => {
+    if (!reference || reference.trim() === '') {
+      setSearchError('');
+      filterTransactions();
+      return;
+    }
+
+    setLoading(true);
+    setSearchError('');
+
+    try {
+      const response = await axios.get(`/api/transactions/search?reference=${reference.trim()}`);
+      const transaction = response.data;
+
+      // Fetch accounts to determine if user owns the accounts
+      const accountsResponse = await axios.get('/api/accounts');
+      const accountsData = accountsResponse.data || [];
+
+      const userAccountIds = accountsData.map(acc => acc.id);
+
+      // Transform the single transaction - use account numbers from backend
+      const fromAccountNum = transaction.fromAccountNumber;
+      const toAccountNum = transaction.toAccountNumber;
+      const isUserSender = userAccountIds.includes(transaction.fromAccountId);
+      const isUserReceiver = userAccountIds.includes(transaction.toAccountId);
+
+      let type, accountNumber, merchant;
+
+      if (isUserSender && isUserReceiver) {
+        type = 'TRANSFER';
+        accountNumber = fromAccountNum;
+        merchant = `${fromAccountNum} → ${toAccountNum}`;
+      } else if (isUserReceiver) {
+        type = 'CREDIT';
+        accountNumber = toAccountNum;
+        merchant = `${fromAccountNum} → ${toAccountNum}`;
+      } else {
+        type = 'DEBIT';
+        accountNumber = fromAccountNum;
+        merchant = `${fromAccountNum} → ${toAccountNum}`;
+      }
+
+      const transformedTransaction = {
+        id: transaction.id,
+        transactionReference: transaction.transactionReference || 'N/A',
+        description: transaction.description || 'Transfer',
+        amount: transaction.amount,
+        date: transaction.timestamp,
+        type: type,
+        category: 'Transfer',
+        merchant: merchant,
+        accountNumber: accountNumber,
+        fromAccountId: transaction.fromAccountId,
+        toAccountId: transaction.toAccountId
+      };
+
+      setFilteredTransactions([transformedTransaction]);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error searching by reference:', error);
+      if (error.response && error.response.status === 404) {
+        setSearchError('Transaction not found with this reference ID');
+      } else if (error.response && error.response.status === 403) {
+        setSearchError('You do not have permission to view this transaction');
+      } else {
+        setSearchError('Failed to search transaction. Please try again.');
+      }
+      setFilteredTransactions([]);
+      setLoading(false);
+    }
+  };
+
   const filterTransactions = () => {
     let filtered = [...transactions];
 
-    // Filter by search term
+    // Filter by search term (includes transaction reference)
     if (searchTerm) {
-      filtered = filtered.filter(t => 
+      // Check if search term looks like a transaction reference (starts with TXN-)
+      if (searchTerm.toUpperCase().startsWith('TXN-')) {
+        searchByReference(searchTerm);
+        return;
+      }
+
+      filtered = filtered.filter(t =>
         t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.merchant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchTerm.toLowerCase())
+        t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.transactionReference && t.transactionReference.toLowerCase().includes(searchTerm.toLowerCase()))
       );
-    }
-
-    // Filter by type
-    if (filterType === 'income') {
-      filtered = filtered.filter(t => t.type === 'CREDIT');
-    } else if (filterType === 'expense') {
-      filtered = filtered.filter(t => t.type === 'DEBIT');
-    }
-
-    // Filter by date range
-    if (dateRange !== 'all') {
-      const days = parseInt(dateRange);
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - days);
-      filtered = filtered.filter(t => new Date(t.date) >= cutoffDate);
     }
 
     setFilteredTransactions(filtered);
@@ -280,52 +338,24 @@ const Transactions = () => {
         </button>
       </div>
 
-      {/* Filters */}
+      {/* Search */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="Search transactions..."
-              />
-            </div>
-          </div>
-
-          {/* Type Filter */}
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          >
-            <option value="all">All Types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expenses</option>
-          </select>
-
-          {/* Date Range */}
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="all">All time</option>
-          </select>
-
-          {/* Filter Button */}
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Filter className="w-4 h-4" />
-            Filter
-          </button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setSearchError('');
+            }}
+            className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            placeholder="Search by description, merchant, or transaction reference (TXN-XXXXXXXX-XXXXXX)..."
+          />
         </div>
+        {searchError && (
+          <p className="mt-1 text-sm text-red-600">{searchError}</p>
+        )}
       </div>
 
       {/* Transactions Table */}
@@ -336,6 +366,9 @@ const Transactions = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Transaction
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Reference ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Category
@@ -354,13 +387,13 @@ const Transactions = () => {
             <tbody className="divide-y divide-gray-200">
               {filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center">
                       <DollarSign className="w-12 h-12 text-gray-400 mb-4" />
                       <p className="text-gray-500 mb-2">No transactions found</p>
                       <p className="text-sm text-gray-400">
-                        {searchTerm || filterType !== 'all' || dateRange !== '30'
-                          ? 'Try adjusting your filters'
+                        {searchTerm
+                          ? 'Try adjusting your search'
                           : 'Make a transfer to see your transaction history'}
                       </p>
                     </div>
@@ -385,6 +418,11 @@ const Transactions = () => {
                           <p className="text-xs text-gray-500">{transaction.merchant}</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                        {transaction.transactionReference || 'N/A'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(transaction.category)}`}>
