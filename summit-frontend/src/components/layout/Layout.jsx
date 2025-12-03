@@ -8,6 +8,7 @@ import {
   ArrowRightLeft,
   Receipt,
   TrendingUp,
+  LineChart,
   Shield,
   Settings,
   LogOut,
@@ -27,18 +28,24 @@ const Layout = () => {
     navigate('/login');
   };
 
-  const navigation = [
-    { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Accounts', href: '/accounts', icon: CreditCard },
-    { name: 'Transfer', href: '/transfer', icon: ArrowRightLeft },
-    { name: 'Transactions', href: '/transactions', icon: Receipt },
-    { name: 'Wealth', href: '/wealth', icon: TrendingUp },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
-
-  if (user?.role === 'ADMIN') {
-    navigation.push({ name: 'Admin', href: '/admin', icon: Shield });
-  }
+  // Different navigation for admin vs regular users
+  const navigation = user?.role === 'ADMIN'
+    ? [
+        { name: 'User Management', href: '/admin', icon: Shield },
+        { name: 'All Transactions', href: '/transactions', icon: Receipt },
+        { name: 'Stock Transactions', href: '/admin/stock-transactions', icon: LineChart },
+        { name: 'Stock Management', href: '/admin/stocks', icon: TrendingUp },
+        { name: 'Settings', href: '/settings', icon: Settings },
+      ]
+    : [
+        { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Accounts', href: '/accounts', icon: CreditCard },
+        { name: 'Transfer', href: '/transfer', icon: ArrowRightLeft },
+        { name: 'Transactions', href: '/transactions', icon: Receipt },
+        { name: 'Wealth', href: '/wealth', icon: TrendingUp },
+        { name: 'Stocks', href: '/stocks', icon: LineChart },
+        { name: 'Settings', href: '/settings', icon: Settings },
+      ];
 
   return (
     <div className="min-h-screen bg-gray-50">

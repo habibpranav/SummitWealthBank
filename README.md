@@ -1,47 +1,219 @@
 # Summit Wealth Bank
 
-Summit Wealth Bank is a simulated retail banking application built with Java Spring Boot.  
-
-The backend functionality is complete, including core banking, transaction handling, and wealth simulation features.
-The frontend is under development with basic wiring planned, and security features (such as authentication and authorization) are scheduled for implementation in a later phase.
+Summit Wealth Bank is a full-stack retail banking application built with Java Spring Boot and React. The application provides comprehensive banking services including account management, internal transfers, stock trading, and wealth management with role-based access control.
 
 ## Team Members
 
-- Pranav Habib - phabib1@stevens.edu 
-- Gunjan Rawat - grawat1@stevens.edu  
-- Sayan Seal - sseal1@stevens.edu  
- 
+- Pranav Habib - phabib1@stevens.edu
+- Gunjan Rawat - grawat1@stevens.edu
+- Sayan Seal - sseal1@stevens.edu
 
-## Features Implemented (Backend)
+## Features
 
-### Account Management
-- Open checking and savings accounts
-- View all accounts by user ID
-- Freeze/unfreeze account functionality via admin endpoints
+###  Authentication & Authorization
+- JWT-based authentication with secure token management
+- Role-based access control (USER, ADMIN)
+- Protected routes and API endpoints
+- Session persistence with automatic token refresh
 
-### Transfers
-- Internal transfers between accounts
-- Validation for frozen status and sufficient balance
+###  Account Management
+- **Open Accounts**: Create checking and savings accounts with initial deposits
+- **View Accounts**: Dashboard showing all user accounts with balances and status
+- **Account Status**: Real-time frozen/active status indicators
+- **Add Money**: Deposit funds into savings accounts
+- **Account Numbers**: Unique account number generation for each account
 
+###  Transfers & Transactions
+- **Internal Transfers**: Transfer funds between user accounts
+- **Transaction History**: Complete transaction log with reference IDs (TXN-YYYYMMDD-XXXXXX)
+- **Transaction Search**: Search transactions by reference ID
+- **Validation**: Automatic checks for frozen accounts and sufficient balance
+- **Account Flow Display**: Visual representation of money flow (From → To)
 
-### Admin Ops
-- Simulated KYC freeze/unfreeze flag
-- Prevents transfers or wealth activity when frozen
+###  Stock Trading System
+- **Live Stock Market**: 50 pre-loaded NASDAQ companies with realistic pricing
+- **Buy/Sell Stocks**: Purchase and sell stocks from limited inventory pool
+- **Limited Shares**: Each stock has finite availability (e.g., 10,000 shares)
+- **Average Cost Basis**: Automatic calculation for profit/loss tracking
+- **Portfolio Management**: Real-time portfolio value and P/L calculation
+- **Stock Transactions**: Separate transaction history for stock trades (STK-YYYYMMDD-XXXXXX)
+- **Transaction Types**: Distinct BUY and SELL operations with visual indicators
 
-### Wealth Module
-- Risk questionnaire input 
-- Auto-assigned ETF allocation 
-- Simulated buy/sell of ETF units using account balance
-- Fake portfolio tracking using geometric random walk for price simulation
+###  Wealth Management
+- **Total Wealth Tracking**: Aggregated view of Checking + Savings + Stock Portfolio
+- **Portfolio Overview**: Real-time market value of stock holdings
+- **Performance Metrics**: Individual stock profit/loss tracking
 
+### ️ Admin Dashboard
+- **User Management**: View all registered users with roles and contact information
+- **Account Control**: Freeze/unfreeze individual user accounts
+- **Transaction Monitoring**: System-wide view of all account transfers
+- **Stock Transaction Oversight**: Monitor all buy/sell activities across the platform
+- **Stock Inventory Management**:
+  - Create new stocks with pricing and share limits
+  - Update stock prices
+  - Delete stocks (with safeguards for active positions)
+- **User Statistics**: Total users and active user counts
 
+## Technology Stack
 
 ### Backend
-- Java 21
-- Spring Boot (REST API)
-- Spring Data JPA / Hibernate
-- Postgres / H2 (for development)
-- Maven
-- JUnit5 (planned for unit testing)
+- **Java 21**
+- **Spring Boot 3.x** - REST API framework
+- **Spring Security** - JWT authentication and authorization
+- **Spring Data JPA** - ORM with Hibernate
+- **PostgreSQL** - Production database
+- **H2** - Development/testing database
+- **Maven** - Dependency management and build tool
+- **Lombok** - Boilerplate code reduction
 
-## Frontend
+### Frontend
+- **React 18** - UI framework
+- **React Router v6** - Client-side routing
+- **Axios** - HTTP client for API communication
+- **Tailwind CSS** - Utility-first CSS framework
+- **Lucide React** - Icon library
+- **Vite** - Build tool and development server
+
+## API Architecture
+
+### Public Endpoints
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User authentication
+
+### User Endpoints (Requires Authentication)
+- `GET /api/accounts` - Get user accounts
+- `POST /api/accounts/open` - Open new account
+- `POST /api/accounts/deposit` - Add money to savings account
+- `POST /api/transfer` - Transfer between accounts
+- `GET /api/transactions/recent` - Get transaction history
+- `GET /api/transactions/search` - Search by reference ID
+- `GET /api/wealth/total` - Get total wealth breakdown
+- `GET /api/stocks/available` - Get tradeable stocks
+- `GET /api/stocks/portfolio` - Get stock holdings
+- `POST /api/stocks/buy` - Buy stocks
+- `POST /api/stocks/sell` - Sell stocks
+- `GET /api/stocks/transactions` - Get stock trade history
+
+### Admin Endpoints (Requires ADMIN Role)
+- `GET /api/admin/users` - Get all users
+- `GET /api/admin/accounts` - Get all accounts
+- `POST /api/admin/freeze` - Freeze account
+- `POST /api/admin/unfreeze` - Unfreeze account
+- `GET /api/admin/transactions/all` - Get all transactions
+- `GET /api/admin/stock-transactions/all` - Get all stock trades
+- `POST /api/admin/stocks/create` - Create new stock
+- `POST /api/admin/stocks/update-price` - Update stock price
+- `GET /api/admin/stocks` - Get all stocks
+- `DELETE /api/admin/stocks/{symbol}` - Delete stock
+
+## Database Schema
+
+### Core Entities
+- **User**: User credentials, profile information, and role
+- **Account**: Bank accounts (Checking/Savings) with balance and frozen status
+- **Transaction**: Internal transfers with reference IDs
+- **Stock**: Available stocks with pricing and inventory
+- **StockPosition**: User's stock holdings with average cost basis
+- **StockTransaction**: Buy/sell stock trade history
+
+## Setup & Installation
+
+### Prerequisites
+- Java 21 or higher
+- Maven 3.6+
+- Node.js 16+ and npm
+- PostgreSQL (for production) or H2 (auto-configured for development)
+
+### Backend Setup
+```bash
+# Navigate to project root
+cd SummitWealthBank
+
+# Build the project
+mvn clean install
+
+# Run the application
+mvn spring-boot:run
+```
+
+The backend server will start on `http://localhost:8080`
+
+### Frontend Setup
+```bash
+# Navigate to frontend directory
+cd summit-frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+The frontend will start on `http://localhost:3000`
+
+### Configuration
+
+Update `src/main/resources/application.properties`:
+
+```properties
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/summitwealthbank
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+
+# JWT Configuration
+jwt.secret=your-secret-key-here
+jwt.expiration=86400000
+
+# Stock Initialization
+app.initialize-stocks=true
+```
+
+## Default Admin Account
+
+An admin account is automatically created on first run:
+- **Email**: admin@summit.com
+- **Password**: admin123
+
+** Important**: Change this password immediately in production!
+
+## Security Features
+
+- **Password Encryption**: BCrypt password hashing
+- **JWT Tokens**: Secure token-based authentication
+- **Authorization Guards**: Role-based endpoint protection
+- **CORS Configuration**: Configured for secure cross-origin requests
+- **Input Validation**: Server-side validation for all inputs
+- **Frozen Account Protection**: Automatic blocking of transactions for frozen accounts
+
+## Key Business Logic
+
+### Stock Trading
+- **Inventory Management**: When users buy stocks, available shares decrease; when they sell, shares return to the pool
+- **Average Cost Basis**: Calculated as: `(existing_value + new_purchase) / total_shares`
+- **Profit/Loss Calculation**: `(current_price - avg_cost_basis) * quantity`
+- **Concurrency Control**: `@Transactional` ensures atomic operations
+
+### Transaction References
+- **Account Transfers**: Format `TXN-YYYYMMDD-XXXXXX`
+- **Stock Trades**: Format `STK-YYYYMMDD-XXXXXX`
+- Unique references for auditing and dispute resolution
+
+### Account Types
+- **Checking**: Used for transfers and stock trading
+- **Savings**: Can receive deposits, used for transfers and stock trading
+
+## Development Notes
+
+### Testing
+- The application uses H2 in-memory database for development
+- 50 NASDAQ stocks are automatically populated on startup
+- Admin account is created automatically
+
+
+
+## Support
+
+For questions or issues, please contact the team members listed above.

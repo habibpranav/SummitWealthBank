@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  CreditCard, 
+import {
+  Plus,
+  CreditCard,
   Wallet,
   TrendingUp,
   MoreVertical,
   Download,
   Eye,
-  EyeOff
+  EyeOff,
+  DollarSign
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -16,6 +17,8 @@ const Accounts = () => {
   const [loading, setLoading] = useState(true);
   const [showBalances, setShowBalances] = useState(true);
   const [showNewAccountModal, setShowNewAccountModal] = useState(false);
+  const [showAddMoneyModal, setShowAddMoneyModal] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const [stats, setStats] = useState({
     totalBalance: 0,
     activeAccounts: 0,
@@ -249,6 +252,151 @@ const Accounts = () => {
     );
   };
 
+  const AddMoneyModal = () => {
+    const [amount, setAmount] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState(false);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError('');
+      setSuccess(false);
+
+      if (parseFloat(amount) <= 0) {
+        setError('Amount must be greater than $0');
+        setSubmitting(false);
+        return;
+      }
+
+      try {
+        await axios.post('/api/accounts/deposit', {
+          accountId: selectedAccount.id,
+          amount: parseFloat(amount)
+        });
+
+        setSuccess(true);
+
+        setTimeout(() => {
+          setShowAddMoneyModal(false);
+          setSelectedAccount(null);
+          fetchAccounts();
+        }, 1500);
+      } catch (error) {
+        console.error('Error adding money:', error);
+
+        if (error.response) {
+          const message = error.response.data;
+          setError(typeof message === 'string' ? message : 'Failed to add money. Please try again.');
+        } else if (error.request) {
+          setError('Network error. Please check your connection.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Add Money to Savings</h3>
+
+          {success && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Money added successfully!</span>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-start gap-2">
+              <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">
+              {selectedAccount?.type} Account
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {selectedAccount?.accountNumber}
+            </p>
+            <p className="text-lg font-bold text-blue-600 mt-2">
+              Current Balance: {formatCurrency(selectedAccount?.balance)}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount to Add
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setError('');
+                  }}
+                  disabled={submitting || success}
+                  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  placeholder="0.00"
+                  min="0.01"
+                  step="0.01"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddMoneyModal(false);
+                  setSelectedAccount(null);
+                }}
+                disabled={submitting}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || success}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Adding...
+                  </>
+                ) : success ? (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Success
+                  </>
+                ) : (
+                  'Add Money'
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -356,6 +504,18 @@ const Accounts = () => {
                     {formatCurrency(account.balance)}
                   </p>
                   <div className="flex items-center gap-2 mt-3">
+                    {account.type === 'SAVINGS' && !account.frozen && (
+                      <button
+                        onClick={() => {
+                          setSelectedAccount(account);
+                          setShowAddMoneyModal(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                      >
+                        <DollarSign className="w-4 h-4" />
+                        Add Money
+                      </button>
+                    )}
                     <button className="p-2 hover:bg-gray-100 rounded-lg">
                       <Download className="w-4 h-4 text-gray-600" />
                     </button>
@@ -373,6 +533,9 @@ const Accounts = () => {
 
       {/* New Account Modal */}
       {showNewAccountModal && <NewAccountModal />}
+
+      {/* Add Money Modal */}
+      {showAddMoneyModal && <AddMoneyModal />}
     </div>
   );
 };

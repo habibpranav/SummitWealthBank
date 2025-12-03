@@ -242,8 +242,10 @@ const Dashboard = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-gray-900">{formatCurrency(account.balance)}</p>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {account.status}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    account.frozen ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {account.frozen ? 'Frozen' : 'Active'}
                   </span>
                 </div>
               </div>

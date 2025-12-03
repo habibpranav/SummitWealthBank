@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Node.js / Frontend ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+.DS_Store
+*.local

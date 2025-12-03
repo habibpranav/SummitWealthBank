@@ -15,6 +15,8 @@ import Accounts from './components/pages/Accounts';
 import Transfer from './components/pages/Transfer';
 import Transactions from './components/pages/Transactions';
 import Wealth from './components/pages/Wealth';
+import Stocks from './components/pages/Stocks';
+import StockTransactions from './components/pages/StockTransactions';
 import Admin from './components/pages/Admin';
 import Settings from './components/pages/Settings';
 
@@ -52,7 +54,9 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+        isAuthenticated
+          ? <Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />
+          : <Login />
       } />
       <Route path="/register" element={
         isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
@@ -64,15 +68,20 @@ function App() {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to={user?.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="accounts" element={<Accounts />} />
         <Route path="transfer" element={<Transfer />} />
         <Route path="transactions" element={<Transactions />} />
         <Route path="wealth" element={<Wealth />} />
+        <Route path="stocks" element={<Stocks />} />
         <Route path="settings" element={<Settings />} />
         {user?.role === 'ADMIN' && (
-          <Route path="admin" element={<Admin />} />
+          <>
+            <Route path="admin" element={<Admin />} />
+            <Route path="admin/stocks" element={<Admin />} />
+            <Route path="admin/stock-transactions" element={<StockTransactions />} />
+          </>
         )}
       </Route>
 

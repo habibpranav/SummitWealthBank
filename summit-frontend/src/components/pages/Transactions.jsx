@@ -16,8 +16,12 @@ import {
   CreditCard
 } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Transactions = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,60 +38,84 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const [transactionsResponse, accountsResponse] = await Promise.all([
-        axios.get('/api/transactions/recent?limit=100'),
-        axios.get('/api/accounts')
-      ]);
+      // Admin fetches all transactions, regular users fetch their own
+      const transactionsEndpoint = isAdmin
+        ? '/api/admin/transactions/all?limit=100'
+        : '/api/transactions/recent?limit=100';
 
+      const transactionsResponse = await axios.get(transactionsEndpoint);
       const transactionsData = transactionsResponse.data || [];
-      const accountsData = accountsResponse.data || [];
 
-      // Get user's account IDs for determining transaction type
-      const userAccountIds = accountsData.map(acc => acc.id);
+      let transformedTransactions;
 
-      // Transform backend Transaction data to match frontend expectations
-      const transformedTransactions = transactionsData.map(t => {
-        // Use account numbers directly from backend
-        const fromAccountNum = t.fromAccountNumber;
-        const toAccountNum = t.toAccountNumber;
+      if (isAdmin) {
+        // Admin view: show all transactions with full details
+        transformedTransactions = transactionsData.map(t => {
+          const fromAccountNum = t.fromAccountNumber;
+          const toAccountNum = t.toAccountNumber;
 
-        // Determine if this is a credit or debit based on whether user owns from/to account
-        const isUserSender = userAccountIds.includes(t.fromAccountId);
-        const isUserReceiver = userAccountIds.includes(t.toAccountId);
+          return {
+            id: t.id,
+            transactionReference: t.transactionReference || 'N/A',
+            description: t.description || 'Transfer',
+            amount: t.amount,
+            date: t.timestamp,
+            type: 'TRANSFER', // Admin sees all as transfers
+            category: 'Transfer',
+            merchant: `${fromAccountNum} → ${toAccountNum}`,
+            accountNumber: fromAccountNum,
+            fromAccountId: t.fromAccountId,
+            toAccountId: t.toAccountId
+          };
+        });
+      } else {
+        // Regular user view: fetch accounts and determine credit/debit
+        const accountsResponse = await axios.get('/api/accounts');
+        const accountsData = accountsResponse.data || [];
+        const userAccountIds = accountsData.map(acc => acc.id);
 
-        let type, accountNumber, merchant;
+        transformedTransactions = transactionsData.map(t => {
+          const fromAccountNum = t.fromAccountNumber;
+          const toAccountNum = t.toAccountNumber;
 
-        if (isUserSender && isUserReceiver) {
-          // Internal transfer between user's own accounts - show as both
-          type = 'TRANSFER';
-          accountNumber = fromAccountNum;
-          merchant = `${fromAccountNum} → ${toAccountNum}`;
-        } else if (isUserReceiver) {
-          // Incoming transfer - CREDIT
-          type = 'CREDIT';
-          accountNumber = toAccountNum;
-          merchant = `${fromAccountNum} → ${toAccountNum}`;
-        } else {
-          // Outgoing transfer - DEBIT
-          type = 'DEBIT';
-          accountNumber = fromAccountNum;
-          merchant = `${fromAccountNum} → ${toAccountNum}`;
-        }
+          // Determine if this is a credit or debit based on whether user owns from/to account
+          const isUserSender = userAccountIds.includes(t.fromAccountId);
+          const isUserReceiver = userAccountIds.includes(t.toAccountId);
 
-        return {
-          id: t.id,
-          transactionReference: t.transactionReference || 'N/A',
-          description: t.description || 'Transfer',
-          amount: t.amount,
-          date: t.timestamp,
-          type: type,
-          category: 'Transfer',
-          merchant: merchant,
-          accountNumber: accountNumber,
-          fromAccountId: t.fromAccountId,
-          toAccountId: t.toAccountId
-        };
-      });
+          let type, accountNumber, merchant;
+
+          if (isUserSender && isUserReceiver) {
+            // Internal transfer between user's own accounts - show as both
+            type = 'TRANSFER';
+            accountNumber = fromAccountNum;
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          } else if (isUserReceiver) {
+            // Incoming transfer - CREDIT
+            type = 'CREDIT';
+            accountNumber = toAccountNum;
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          } else {
+            // Outgoing transfer - DEBIT
+            type = 'DEBIT';
+            accountNumber = fromAccountNum;
+            merchant = `${fromAccountNum} → ${toAccountNum}`;
+          }
+
+          return {
+            id: t.id,
+            transactionReference: t.transactionReference || 'N/A',
+            description: t.description || 'Transfer',
+            amount: t.amount,
+            date: t.timestamp,
+            type: type,
+            category: 'Transfer',
+            merchant: merchant,
+            accountNumber: accountNumber,
+            fromAccountId: t.fromAccountId,
+            toAccountId: t.toAccountId
+          };
+        });
+      }
 
       setTransactions(transformedTransactions);
       setLoading(false);
@@ -329,8 +357,14 @@ const Transactions = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-gray-600 mt-1">Track and manage your financial activity</p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isAdmin ? 'All Transactions' : 'Transactions'}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {isAdmin
+              ? 'View all system-wide transaction activity'
+              : 'Track and manage your financial activity'}
+          </p>
         </div>
         <button className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
           <Download className="w-4 h-4" />
