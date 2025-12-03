@@ -1,6 +1,7 @@
 package edu.ssw590.summitwealthbank.controller;
 
 import edu.ssw590.summitwealthbank.dto.RiskScoreRequest;
+import edu.ssw590.summitwealthbank.dto.TotalWealthResponse;
 import edu.ssw590.summitwealthbank.dto.WealthActionRequest;
 import edu.ssw590.summitwealthbank.model.WealthPortfolio;
 import edu.ssw590.summitwealthbank.service.WealthService;
@@ -49,5 +50,11 @@ public class WealthController {
     public WealthPortfolio invest(@RequestBody WealthActionRequest request, Authentication authentication) {
         String email = authentication.getName();
         return wealthService.buy(request);
+    }
+
+    @GetMapping("/total")
+    public TotalWealthResponse getTotalWealth(Authentication authentication) {
+        String email = authentication.getName();
+        return wealthService.getTotalWealth(email);
     }
 }

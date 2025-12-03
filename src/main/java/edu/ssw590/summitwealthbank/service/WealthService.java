@@ -1,6 +1,8 @@
 package edu.ssw590.summitwealthbank.service;
 
 import edu.ssw590.summitwealthbank.dto.RiskScoreRequest;
+import edu.ssw590.summitwealthbank.dto.StockPortfolioResponse;
+import edu.ssw590.summitwealthbank.dto.TotalWealthResponse;
 import edu.ssw590.summitwealthbank.dto.WealthActionRequest;
 import edu.ssw590.summitwealthbank.model.Account;
 import edu.ssw590.summitwealthbank.model.WealthPortfolio;
@@ -21,6 +23,7 @@ public class WealthService {
 
     private final AccountService accountService;
     private final WealthPortfolioRepository wealthPortfolioRepository;
+    private final StockService stockService;
 
     public WealthPortfolio setRiskScore(RiskScoreRequest req) {
         BigDecimal stock = BigDecimal.valueOf(req.getRiskScore() * 20); // 1→20%, 5→100%
@@ -118,5 +121,40 @@ public class WealthService {
                 .map(accountId -> wealthPortfolioRepository.findByAccountId(accountId).orElse(null))
                 .filter(portfolio -> portfolio != null)
                 .collect(Collectors.toList());
+    }
+
+    public TotalWealthResponse getTotalWealth(String email) {
+        // Get all accounts
+        List<Account> accounts = accountService.getAccountsByEmail(email);
+
+        // Calculate account balances by type
+        BigDecimal checkingBalance = accounts.stream()
+                .filter(acc -> acc.getType() == Account.AccountType.CHECKING)
+                .map(Account::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal savingsBalance = accounts.stream()
+                .filter(acc -> acc.getType() == Account.AccountType.SAVINGS)
+                .map(Account::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Get stock portfolio value
+        List<StockPortfolioResponse> stockPortfolio = stockService.getUserPortfolio(email);
+        BigDecimal stockPortfolioValue = stockPortfolio.stream()
+                .map(StockPortfolioResponse::getMarketValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Calculate total wealth
+        BigDecimal totalWealth = checkingBalance
+                .add(savingsBalance)
+                .add(stockPortfolioValue)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        return TotalWealthResponse.builder()
+                .checkingBalance(checkingBalance.setScale(2, RoundingMode.HALF_UP))
+                .savingsBalance(savingsBalance.setScale(2, RoundingMode.HALF_UP))
+                .stockPortfolioValue(stockPortfolioValue.setScale(2, RoundingMode.HALF_UP))
+                .totalWealth(totalWealth)
+                .build();
     }
 }
