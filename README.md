@@ -54,6 +54,12 @@ Summit Wealth Bank is a full-stack retail banking application built with Java Sp
   - Update stock prices
   - Delete stocks (with safeguards for active positions)
 - **User Statistics**: Total users and active user counts
+- **Operational Dashboard**: Real-time system monitoring and metrics
+  - System health status (application, database, disk space, network)
+  - JVM metrics (memory usage, CPU usage, application uptime)
+  - Business metrics (total users, accounts, transactions, stock trades)
+  - Financial overview (total system balance, active accounts)
+  - Auto-refresh every 30 seconds
 
 ## Technology Stack
 
@@ -152,6 +158,52 @@ npm run dev
 ```
 
 The frontend will start on `http://localhost:3000`
+
+## Running Locally (Quick Start)
+
+### Prerequisites Check
+```bash
+java -version    # Should be Java 21+
+mvn -version     # Should be Maven 3.6+
+node -version    # Should be Node 16+
+```
+
+### 1. Start Backend
+```bash
+# From project root
+mvn spring-boot:run
+```
+✅ Backend running on: **http://localhost:8080**
+
+### 2. Start Frontend
+```bash
+# Open new terminal, from project root
+cd summit-frontend
+npm install      # First time only
+npm run dev
+```
+✅ Frontend running on: **http://localhost:3000**
+
+### 3. Login with Default Admin
+- **Email**: `admin@summit.com`
+- **Password**: `admin123`
+
+### Common Issues
+
+**Port 8080 already in use?**
+```bash
+lsof -ti:8080 | xargs kill -9
+```
+
+**Port 3000 already in use?**
+```bash
+lsof -ti:3000 | xargs kill -9
+```
+
+**Database connection error?**
+- H2 database is used by default (in-memory)
+- No PostgreSQL setup needed for local development
+- Data resets on each restart
 
 ### Configuration
 

@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  User
+  User,
+  Activity
 } from 'lucide-react';
 
 const Layout = () => {
@@ -32,6 +33,7 @@ const Layout = () => {
   const navigation = user?.role === 'ADMIN'
     ? [
         { name: 'User Management', href: '/admin', icon: Shield },
+        { name: 'Operational Dashboard', href: '/admin/operational', icon: Activity },
         { name: 'All Transactions', href: '/transactions', icon: Receipt },
         { name: 'Stock Transactions', href: '/admin/stock-transactions', icon: LineChart },
         { name: 'Stock Management', href: '/admin/stocks', icon: TrendingUp },

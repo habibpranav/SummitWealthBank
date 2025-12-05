@@ -19,6 +19,7 @@ import Stocks from './components/pages/Stocks';
 import StockTransactions from './components/pages/StockTransactions';
 import Admin from './components/pages/Admin';
 import Settings from './components/pages/Settings';
+import OperationalDashboard from './components/pages/OperationalDashboard';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -81,6 +82,7 @@ function App() {
             <Route path="admin" element={<Admin />} />
             <Route path="admin/stocks" element={<Admin />} />
             <Route path="admin/stock-transactions" element={<StockTransactions />} />
+            <Route path="admin/operational" element={<OperationalDashboard />} />
           </>
         )}
       </Route>
