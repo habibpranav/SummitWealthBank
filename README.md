@@ -2,35 +2,51 @@
 
 Summit Wealth Bank is a full-stack retail banking application built with Java Spring Boot and React. The application provides comprehensive banking services including account management, internal transfers, stock trading, and wealth management with role-based access control.
 
+## Table of Contents
+
+- [Team Members](#team-members)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [API Architecture](#api-architecture)
+- [Database Schema](#database-schema)
+- [Setup & Installation](#setup--installation)
+- [Running Locally](#running-locally-quick-start)
+- [Configuration](#configuration)
+- [Security Features](#security-features)
+- [Key Business Logic](#key-business-logic)
+- [Project Structure](#project-structure)
+- [Development Notes](#development-notes)
+- [Support](#support)
+
 ## Team Members
 
-- Pranav Habib - phabib1@stevens.edu
-- Gunjan Rawat - grawat1@stevens.edu
-- Sayan Seal - sseal1@stevens.edu
+- **Pranav Habib** - phabib1@stevens.edu
+- **Gunjan Rawat** - grawat1@stevens.edu
+- **Sayan Seal** - sseal1@stevens.edu
 
 ## Features
 
-###  Authentication & Authorization
+### Authentication & Authorization
 - JWT-based authentication with secure token management
 - Role-based access control (USER, ADMIN)
 - Protected routes and API endpoints
 - Session persistence with automatic token refresh
 
-###  Account Management
+### Account Management
 - **Open Accounts**: Create checking and savings accounts with initial deposits
 - **View Accounts**: Dashboard showing all user accounts with balances and status
 - **Account Status**: Real-time frozen/active status indicators
 - **Add Money**: Deposit funds into savings accounts
 - **Account Numbers**: Unique account number generation for each account
 
-###  Transfers & Transactions
+### Transfers & Transactions
 - **Internal Transfers**: Transfer funds between user accounts
 - **Transaction History**: Complete transaction log with reference IDs (TXN-YYYYMMDD-XXXXXX)
 - **Transaction Search**: Search transactions by reference ID
 - **Validation**: Automatic checks for frozen accounts and sufficient balance
 - **Account Flow Display**: Visual representation of money flow (From → To)
 
-###  Stock Trading System
+### Stock Trading System
 - **Live Stock Market**: 50 pre-loaded NASDAQ companies with realistic pricing
 - **Buy/Sell Stocks**: Purchase and sell stocks from limited inventory pool
 - **Limited Shares**: Each stock has finite availability (e.g., 10,000 shares)
@@ -39,12 +55,12 @@ Summit Wealth Bank is a full-stack retail banking application built with Java Sp
 - **Stock Transactions**: Separate transaction history for stock trades (STK-YYYYMMDD-XXXXXX)
 - **Transaction Types**: Distinct BUY and SELL operations with visual indicators
 
-###  Wealth Management
+### Wealth Management
 - **Total Wealth Tracking**: Aggregated view of Checking + Savings + Stock Portfolio
 - **Portfolio Overview**: Real-time market value of stock holdings
 - **Performance Metrics**: Individual stock profit/loss tracking
 
-### ️ Admin Dashboard
+### Admin Dashboard
 - **User Management**: View all registered users with roles and contact information
 - **Account Control**: Freeze/unfreeze individual user accounts
 - **Transaction Monitoring**: System-wide view of all account transfers
@@ -84,34 +100,40 @@ Summit Wealth Bank is a full-stack retail banking application built with Java Sp
 ## API Architecture
 
 ### Public Endpoints
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User authentication
+```
+POST /api/auth/register          - User registration
+POST /api/auth/login             - User authentication
+```
 
 ### User Endpoints (Requires Authentication)
-- `GET /api/accounts` - Get user accounts
-- `POST /api/accounts/open` - Open new account
-- `POST /api/accounts/deposit` - Add money to savings account
-- `POST /api/transfer` - Transfer between accounts
-- `GET /api/transactions/recent` - Get transaction history
-- `GET /api/transactions/search` - Search by reference ID
-- `GET /api/wealth/total` - Get total wealth breakdown
-- `GET /api/stocks/available` - Get tradeable stocks
-- `GET /api/stocks/portfolio` - Get stock holdings
-- `POST /api/stocks/buy` - Buy stocks
-- `POST /api/stocks/sell` - Sell stocks
-- `GET /api/stocks/transactions` - Get stock trade history
+```
+GET  /api/accounts               - Get user accounts
+POST /api/accounts/open          - Open new account
+POST /api/accounts/deposit       - Add money to savings account
+POST /api/transfer               - Transfer between accounts
+GET  /api/transactions/recent    - Get transaction history
+GET  /api/transactions/search    - Search by reference ID
+GET  /api/wealth/total           - Get total wealth breakdown
+GET  /api/stocks/available       - Get tradeable stocks
+GET  /api/stocks/portfolio       - Get stock holdings
+POST /api/stocks/buy             - Buy stocks
+POST /api/stocks/sell            - Sell stocks
+GET  /api/stocks/transactions    - Get stock trade history
+```
 
 ### Admin Endpoints (Requires ADMIN Role)
-- `GET /api/admin/users` - Get all users
-- `GET /api/admin/accounts` - Get all accounts
-- `POST /api/admin/freeze` - Freeze account
-- `POST /api/admin/unfreeze` - Unfreeze account
-- `GET /api/admin/transactions/all` - Get all transactions
-- `GET /api/admin/stock-transactions/all` - Get all stock trades
-- `POST /api/admin/stocks/create` - Create new stock
-- `POST /api/admin/stocks/update-price` - Update stock price
-- `GET /api/admin/stocks` - Get all stocks
-- `DELETE /api/admin/stocks/{symbol}` - Delete stock
+```
+GET    /api/admin/users                  - Get all users
+GET    /api/admin/accounts               - Get all accounts
+POST   /api/admin/freeze                 - Freeze account
+POST   /api/admin/unfreeze               - Unfreeze account
+GET    /api/admin/transactions/all       - Get all transactions
+GET    /api/admin/stock-transactions/all - Get all stock trades
+POST   /api/admin/stocks/create          - Create new stock
+POST   /api/admin/stocks/update-price    - Update stock price
+GET    /api/admin/stocks                 - Get all stocks
+DELETE /api/admin/stocks/{symbol}        - Delete stock
+```
 
 ## Database Schema
 
@@ -205,7 +227,7 @@ lsof -ti:3000 | xargs kill -9
 - No PostgreSQL setup needed for local development
 - Data resets on each restart
 
-### Configuration
+## Configuration
 
 Update `src/main/resources/application.properties`:
 
@@ -223,13 +245,13 @@ jwt.expiration=86400000
 app.initialize-stocks=true
 ```
 
-## Default Admin Account
+### Default Admin Account
 
 An admin account is automatically created on first run:
 - **Email**: admin@summit.com
 - **Password**: admin123
 
-** Important**: Change this password immediately in production!
+**⚠️ Important**: Change this password immediately in production!
 
 ## Security Features
 
@@ -257,6 +279,35 @@ An admin account is automatically created on first run:
 - **Checking**: Used for transfers and stock trading
 - **Savings**: Can receive deposits, used for transfers and stock trading
 
+## Project Structure
+
+```
+SummitWealthBank/
+├── src/
+│   ├── main/
+│   │   ├── java/com/summitwealth/bank/
+│   │   │   ├── controller/          # REST API endpoints
+│   │   │   ├── service/             # Business logic
+│   │   │   ├── repository/          # Data access layer
+│   │   │   ├── model/               # Entity classes
+│   │   │   ├── dto/                 # Data transfer objects
+│   │   │   ├── config/              # Security & app configuration
+│   │   │   └── util/                # Utility classes
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/                        # Unit and integration tests
+├── summit-frontend/
+│   ├── src/
+│   │   ├── components/              # React components
+│   │   ├── pages/                   # Page components
+│   │   ├── services/                # API service layer
+│   │   └── App.jsx                  # Main app component
+│   ├── package.json
+│   └── vite.config.js
+├── pom.xml                          # Maven configuration
+└── README.md
+```
+
 ## Development Notes
 
 ### Testing
@@ -264,8 +315,22 @@ An admin account is automatically created on first run:
 - 50 NASDAQ stocks are automatically populated on startup
 - Admin account is created automatically
 
+### Environment Configuration
+- Development uses H2 database (in-memory)
+- Production requires PostgreSQL setup
+- JWT secret should be changed for production deployment
 
+### Future Enhancements
+- External bank transfers (ACH)
+- Bill payment system
+- Loan applications
+- Mobile app integration
+- Real-time notifications
+- Two-factor authentication
 
 ## Support
 
-For questions or issues, please contact the team members listed above.
+For questions or issues, please contact:
+- **Pranav Habib** - phabib1@stevens.edu
+- **Gunjan Rawat** - grawat1@stevens.edu
+- **Sayan Seal** - sseal1@stevens.edu
